@@ -1,5 +1,37 @@
 {
-  "name": "fassjs-tc",
-  "version": "0.0.0",
-  "license": "MIT"
+  "name": "@faasjs/tc",
+  "version": "0.0.0-alpha.0",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "lint": "tslint -p tsconfig.json --fix",
+    "build": "tsc",
+    "test": "jest --expand",
+    "doc": "jsdoc2md --files ./src/*.ts --configure ./jsdoc2md.json > ./API.md",
+    "ci": "yarn test && yarn lint && yarn build && yarn doc"
+  },
+  "dependencies": {
+    "@faasjs/utils": "../faasjs-utils"
+  },
+  "devDependencies": {
+    "@babel/core": "*",
+    "@babel/plugin-proposal-class-properties": "*",
+    "@babel/preset-env": "*",
+    "@babel/preset-typescript": "*",
+    "@types/debug": "*",
+    "@types/jest": "*",
+    "@types/node": "*",
+    "babel-jest": "*",
+    "jest": "*",
+    "jsdoc-babel": "*",
+    "jsdoc-to-markdown": "*",
+    "tslint": "*",
+    "typescript": "*"
+  },
+  "jest": {
+    "testPathIgnorePatterns": [
+      "/lib/"
+    ]
+  }
 }
