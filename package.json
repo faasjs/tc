@@ -1,6 +1,6 @@
 {
   "name": "@faasjs/tc",
-  "version": "0.0.0-alpha.0",
+  "version": "0.0.0-alpha.1",
   "license": "MIT",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -10,14 +10,16 @@
     "test": "jest --expand",
     "doc": "jsdoc2md --files ./lib/*.js > ./API.md",
     "ci": "yarn lint && yarn test",
-    "commit": "yarn ci && yarn build && yarn doc"
+    "commit": "yarn ci && rm -rf ./lib && yarn build && yarn doc"
   },
+  "files": [
+    "libs"
+  ],
   "dependencies": {
     "@faasjs/utils": "0.0.0-alpha.2"
   },
   "devDependencies": {
     "@babel/core": "*",
-    "@babel/plugin-proposal-class-properties": "*",
     "@babel/preset-env": "*",
     "@babel/preset-typescript": "*",
     "@types/debug": "*",

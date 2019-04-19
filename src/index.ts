@@ -1,8 +1,6 @@
 import { Logger, request } from '@faasjs/utils';
 import * as crypto from 'crypto';
 
-const log = new Logger('faasjs.tc');
-
 function mergeData(data: any, prefix: string = '') {
   const ret: any = {};
   for (const k in data) {
@@ -30,87 +28,148 @@ function formatSignString(params: any) {
   return str.slice(1);
 }
 
-function req(method: string, url: string, params: any, config: any) {
-  params = Object.assign({
-    Nonce: Math.round(Math.random() * 65535),
-    Region: params.region || config.region,
-    SecretId: config.secretId,
-    SignatureMethod: 'HmacSHA256',
-    Timestamp: Math.round(Date.now() / 1000) - 1,
-  }, params);
-  params = mergeData(params);
-  const sign = method + url + formatSignString(params);
-  // console.log(sign);
-  params.Signature = crypto.createHmac('sha256', config.secretKey).update(sign).digest('base64');
-  return request('https://' + url, {
-    body: params,
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    method,
-  });
-}
+/**
+ * 腾讯云
+ */
+class TC {
+  public config: {
+    secretId?: string;
+    secretKey?: string;
+    region?: string;
+  };
+  public logger: Logger;
 
-module.exports = {
-  config: {
-    region: 'ap-beijing',
-    secretId: null,
-    secretKey: null,
-  },
-  request: req,
-  v2res(res: any) {
+  constructor(secretId?: string, secretKey?: string, region?: string) {
+    this.config = {};
+
+    if (secretId) {
+      this.config.secretId = secretId;
+    }
+
+    if (secretKey) {
+      this.config.secretKey = secretKey;
+    }
+
+    if (region) {
+      this.config.region = region;
+    }
+
+    this.logger = new Logger('faasjs.tc');
+  }
+
+  public init(secretId?: string, secretKey?: string, region: string = 'ap-beijing') {
+    if (secretId) {
+      this.config.secretId = secretId;
+    }
+
+    if (secretKey) {
+      this.config.secretKey = secretKey;
+    }
+
+    if (region) {
+      this.config.region = region;
+    }
+  }
+
+  public request(method: string, url: string, params: any, config?: {
+    region?: string;
+    secretId?: string;
+    secretKey?: string;
+  }) {
+    if (!config) {
+      config = this.config;
+    }
+
+    if (!config.secretId || !config.secretKey) {
+      throw Error('secretId and secretKey are required.');
+    }
+
+    params = Object.assign({
+      Nonce: Math.round(Math.random() * 65535),
+      Region: params.region || config.region,
+      SecretId: config.secretId,
+      SignatureMethod: 'HmacSHA256',
+      Timestamp: Math.round(Date.now() / 1000) - 1,
+    }, params);
+    params = mergeData(params);
+
+    const sign = method + url + formatSignString(params);
+    params.Signature = crypto.createHmac('sha256', config.secretKey).update(sign).digest('base64');
+
+    return request('https://' + url, {
+      body: params,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      method,
+    });
+  }
+
+  /**
+   * 云函数接口
+   * @param action {string} 操作
+   * @param params {object} 参数
+   */
+  public scf(action: string, params: any) {
+    this.logger.debug('scf %s %o', action, params);
+
+    params.Action = action;
+    params.Version = '2018-04-16';
+    return this.request('POST', 'scf.tencentcloudapi.com/?', params).then(this.v3res);
+  }
+
+  /**
+   * API 网关接口
+   * @param action {string} 操作
+   * @param params {object} 参数
+   */
+  public apigateway(action: string, params: any) {
+    this.logger.debug('apigateway %s %o', action, params);
+
+    params.Action = action;
+    return this.request('POST', 'apigateway.api.qcloud.com/v2/index.php?', params).then(this.v2res);
+  }
+
+  /**
+   * CMQ 接口
+   * @param action {string} 操作
+   * @param params {object} 参数
+   */
+  public cmq(action: string, params: any) {
+    this.logger.debug('cmq %s %o', action, params);
+
+    params.Action = action;
+    return this.request(
+      'POST',
+      `cmq-queue-${params.Region}.api.qcloud.com/v2/index.php?`,
+      params).then(this.v2res);
+  }
+
+  private v2res(res: any) {
     const body = JSON.parse(res.body);
     if (body.code === 0) {
       return body;
     } else {
       throw body;
     }
-  },
-  v3res(res: any) {
+  }
+
+  private v3res(res: any) {
     const body = JSON.parse(res.body);
     if (body.Response.Error) {
       throw body;
     } else {
       return body.Response;
     }
-  },
-  init(id: string, key: string, region?: string) {
-    this.config.secretId = id;
-    this.config.secretKey = key;
-    if (region) {
-      this.config.region = region;
-    }
-  },
-  /**
-   * 请求云函数接口
-   * @param action {string} 操作
-   * @param params {object} 参数
-   */
-  scf(action: string, params: any) {
-    log.debug('scf %s %o', action, params);
+  }
+}
 
-    params.Action = action;
-    params.Version = '2018-04-16';
-    return req('POST', 'scf.tencentcloudapi.com/?', params, this.config).then(this.v3res);
-  },
-  /**
-   * 请求 API 网关接口
-   * @param action {string} 操作
-   * @param params {object} 参数
-   */
-  apigateway(action: string, params: any) {
-    log.debug('apigateway %s %o', action, params);
+/**
+ * 默认生成的共用 TC 实例
+ */
+const tc = new TC();
 
-    params.Action = action;
-    return req('POST', 'apigateway.api.qcloud.com/v2/index.php?', params, this.config).then(this.v2res);
-  },
-  /**
-   * 请求 CMQ 接口
-   * @param action {string} 操作
-   * @param params {object} 参数
-   */
-  cmq(action: string, params: any) {
-    log.debug('cmq %s %o', action, params);
-
-    params.Action = action;
-    return req('POST', `cmq-queue-${params.Region}.api.qcloud.com/v2/index.php?`, params, this.config).then(this.v2res);
-  },
+export {
+  TC,
+  tc,
 };
+
+export default tc;
