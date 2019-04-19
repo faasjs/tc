@@ -8,6 +8,17 @@
     "quotemark": [
       true,
       "single"
+    ],
+    "no-empty": [
+      true,
+      "allow-empty-functions"
+    ],
+    "only-arrow-functions": false,
+    "space-before-function-paren": [
+      true,
+      {
+        "anonymous": "always"
+      }
     ]
   },
   "rulesDirectory": []

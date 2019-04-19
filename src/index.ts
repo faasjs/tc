@@ -72,9 +72,12 @@ module.exports = {
       return body.Response;
     }
   },
-  init(id: string, key: string) {
+  init(id: string, key: string, region?: string) {
     this.config.secretId = id;
     this.config.secretKey = key;
+    if (region) {
+      this.config.region = region;
+    }
   },
   /**
    * 请求云函数接口

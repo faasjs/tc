@@ -8,11 +8,12 @@
     "lint": "tslint -p tsconfig.json --fix",
     "build": "tsc",
     "test": "jest --expand",
-    "doc": "jsdoc2md --files ./src/*.ts --configure ./jsdoc2md.json > ./API.md",
-    "ci": "yarn test && yarn lint && yarn build && yarn doc"
+    "doc": "jsdoc2md --files ./lib/*.js > ./API.md",
+    "ci": "yarn lint && yarn test",
+    "commit": "yarn ci && yarn build && yarn doc"
   },
   "dependencies": {
-    "@faasjs/utils": "../faasjs-utils"
+    "@faasjs/utils": "0.0.0-alpha.2"
   },
   "devDependencies": {
     "@babel/core": "*",
@@ -30,8 +31,24 @@
     "typescript": "*"
   },
   "jest": {
+    "collectCoverage": true,
+    "testRegex": "/*\\.test\\.ts$",
     "testPathIgnorePatterns": [
-      "/lib/"
+      "/lib/",
+      "/tmp/"
+    ],
+    "coveragePathIgnorePatterns": [
+      "/lib/",
+      "/tmp/",
+      "/__tests__/"
+    ],
+    "modulePathIgnorePatterns": [
+      "/lib/",
+      "/tmp/"
+    ],
+    "watchPathIgnorePatterns": [
+      "/lib/",
+      "/tmp/"
     ]
   }
 }
