@@ -17,15 +17,13 @@ function mergeData(data: any, prefix: string = '') {
 }
 
 function formatSignString(params: any) {
-  let str = '';
-  const keys = Object.keys(params);
-  keys.sort();
-  for (const k in keys) {
-    if (params.hasOwnProperty(k)) {
-      str += ('&' + keys[k] + '=' + params[keys[k]]);
-    }
+  const str: string[] = [];
+
+  for (const key of Object.keys(params).sort()) {
+    str.push(key + '=' + params[key]);
   }
-  return str.slice(1);
+
+  return str.join('&');
 }
 
 /**
@@ -94,6 +92,7 @@ class TC {
     params = mergeData(params);
 
     const sign = method + url + formatSignString(params);
+
     params.Signature = crypto.createHmac('sha256', config.secretKey).update(sign).digest('base64');
 
     return request('https://' + url, {
